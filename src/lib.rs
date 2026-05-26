@@ -24,8 +24,8 @@ pub mod symbol;
 pub mod rational_big;
 
 pub use calculus::{
-    gradient, hessian, integrate_definite, integrate_numeric, DefiniteIntegralError,
-    IntegrateError, NumericOptions,
+    diff_without_simplify, gradient, hessian, integrate_definite, integrate_numeric,
+    DefiniteIntegralError, IntegrateError, NumericOptions,
 };
 pub use eval::EvalError;
 pub use expr::Expr;
@@ -50,12 +50,15 @@ pub fn exp(e: impl Into<Expr>) -> Expr {
 pub fn ln(e: impl Into<Expr>) -> Expr {
     expr::ln(e.into())
 }
+pub fn atan(e: impl Into<Expr>) -> Expr {
+    expr::atan(e.into())
+}
 
 pub mod prelude {
     pub use crate::{
-        cos, exp, expr, gradient, hessian, integrate_definite, integrate_numeric, ln, rational,
-        rational_from_i32, sin, symbol, tan, DefiniteIntegralError, EvalError, Expr,
-        IntegrateError, NumericOptions, Rational, Symbol,
+        atan, cos, diff_without_simplify, exp, expr, gradient, hessian, integrate_definite,
+        integrate_numeric, ln, rational, rational_from_i32, sin, symbol, tan,
+        DefiniteIntegralError, EvalError, Expr, IntegrateError, NumericOptions, Rational, Symbol,
     };
 }
 
@@ -70,6 +73,17 @@ mod tests {
         let df = f.diff(x).simplify();
         let expected = rational(2, 1) * x.to_expr();
         assert_eq!(df.simplify().to_string(), expected.simplify().to_string());
+    }
+
+    #[test]
+    fn diff_without_simplify_matches_numeric() {
+        let x = symbol("x");
+        let f = sin(x).pow(3) * cos(x).pow(2);
+        let fx = f.clone().integrate(x).unwrap();
+        let df = fx.diff_without_simplify(x);
+        let v = f.eval_f64(&[(x, 0.5)]).unwrap();
+        let rv = df.eval_f64(&[(x, 0.5)]).unwrap();
+        assert!((v - rv).abs() < 1e-5);
     }
 
     #[test]
@@ -180,6 +194,222 @@ mod tests {
         assert_eq!(h[0][1].clone().simplify().to_string(), "1");
         assert_eq!(h[1][0].clone().simplify().to_string(), "1");
         assert_eq!(h[1][1].clone().simplify().to_string(), "0");
+    }
+
+    #[test]
+    fn integrate_tan_and_ln() {
+        let x = symbol("x");
+        let tan_int = crate::expr::tan(x.to_expr()).integrate(x).unwrap().simplify();
+        assert_eq!(
+            tan_int.to_string(),
+            (-crate::expr::ln(crate::expr::cos(x.to_expr()))).simplify().to_string()
+        );
+        let ln_int = crate::expr::ln(x.to_expr()).integrate(x).unwrap().simplify();
+        let x_expr = x.to_expr();
+        let expected_ln =
+            x_expr.clone() * crate::expr::ln(x_expr.clone()) - x_expr;
+        assert_eq!(ln_int.to_string(), expected_ln.simplify().to_string());
+    }
+
+    #[test]
+    fn integrate_sin_squared() {
+        let x = symbol("x");
+        let f = sin(x).pow(2);
+        let F = f.clone().integrate(x).unwrap().simplify();
+        let recovered = F.diff(x).simplify();
+        let v = f.eval_f64(&[(x, 0.3)]).unwrap();
+        let rv = recovered.eval_f64(&[(x, 0.3)]).unwrap();
+        assert!((v - rv).abs() < 1e-6);
+    }
+
+    #[test]
+    fn integrate_sin_cos_product() {
+        let x = symbol("x");
+        let f = sin(x) * cos(x);
+        let F = f.clone().integrate(x).unwrap().simplify();
+        let recovered = F.diff(x).simplify();
+        let v = f.eval_f64(&[(x, 0.4)]).unwrap();
+        let rv = recovered.eval_f64(&[(x, 0.4)]).unwrap();
+        assert!((v - rv).abs() < 1e-5);
+    }
+
+    #[test]
+    fn integrate_partial_fractions() {
+        use crate::expr::const_;
+        let x = symbol("x");
+        let f = const_(Rational::one())
+            / (x.to_expr() - const_(rational(1, 1)))
+            / (x.to_expr() - const_(rational(2, 1)));
+        let antideriv = f.integrate(x).unwrap().simplify();
+        assert!(
+            antideriv.to_string().contains("ln"),
+            "expected ln terms, got {antideriv}"
+        );
+    }
+
+    #[test]
+    fn integrate_one_over_x_squared_plus_one() {
+        use crate::expr::const_;
+        let x = symbol("x");
+        let f = const_(Rational::one()) / (x.to_expr().pow(2) + rational(1, 1));
+        let antideriv = f.clone().integrate(x).unwrap().simplify();
+        assert!(
+            antideriv.to_string().contains("atan"),
+            "expected atan, got {antideriv}"
+        );
+        let recovered = antideriv.diff(x).simplify();
+        let v = f.eval_f64(&[(x, 0.5)]).unwrap();
+        let rv = recovered.eval_f64(&[(x, 0.5)]).unwrap();
+        assert!((v - rv).abs() < 1e-6, "{rv} vs {v}");
+    }
+
+    #[test]
+    fn integrate_rational_polynomial_quotient() {
+        use crate::expr::const_;
+        let x = symbol("x");
+        let f = (x.to_expr().pow(2) + rational(1, 1))
+            / (x.to_expr() - const_(rational(1, 1)));
+        let antideriv = f.clone().integrate(x).unwrap().simplify();
+        let recovered = antideriv.diff(x).simplify();
+        let v = f.eval_f64(&[(x, 2.0)]).unwrap();
+        let rv = recovered.eval_f64(&[(x, 2.0)]).unwrap();
+        assert!((v - rv).abs() < 1e-5, "{rv} vs {v}");
+    }
+
+    #[test]
+    fn integrate_sin_fourth_power() {
+        let x = symbol("x");
+        let f = sin(x).pow(4);
+        let antideriv = f.clone().integrate(x).unwrap().simplify();
+        let recovered = antideriv.diff(x).simplify();
+        let v = f.eval_f64(&[(x, 0.25)]).unwrap();
+        let rv = recovered.eval_f64(&[(x, 0.25)]).unwrap();
+        assert!((v - rv).abs() < 1e-5, "{rv} vs {v}");
+    }
+
+    #[test]
+    fn integrate_atan_x() {
+        let x = symbol("x");
+        let f = crate::expr::atan(x.to_expr());
+        let antideriv = f.clone().integrate(x).unwrap().simplify();
+        assert!(antideriv.to_string().contains("atan"));
+        let recovered = antideriv.diff(x).simplify();
+        let v = f.eval_f64(&[(x, 1.0)]).unwrap();
+        let rv = recovered.eval_f64(&[(x, 1.0)]).unwrap();
+        assert!((v - rv).abs() < 1e-5);
+    }
+
+    #[test]
+    fn integrate_exp_sin() {
+        let x = symbol("x");
+        let f = exp(x) * sin(x);
+        let antideriv = f.clone().integrate(x).unwrap().simplify();
+        let recovered = antideriv.diff(x).simplify();
+        let v = f.eval_f64(&[(x, 0.7)]).unwrap();
+        let rv = recovered.eval_f64(&[(x, 0.7)]).unwrap();
+        assert!((v - rv).abs() < 1e-5, "{rv} vs {v}");
+    }
+
+    #[test]
+    fn integrate_x_squared_ln() {
+        let x = symbol("x");
+        let f = x.to_expr().pow(2) * crate::expr::ln(x.to_expr());
+        let antideriv = f.clone().integrate(x).unwrap().simplify();
+        let recovered = antideriv.diff(x).simplify();
+        let v = f.eval_f64(&[(x, 2.0)]).unwrap();
+        let rv = recovered.eval_f64(&[(x, 2.0)]).unwrap();
+        assert!((v - rv).abs() < 1e-5);
+    }
+
+    #[test]
+    fn integrate_tan_cubed() {
+        let x = symbol("x");
+        let f = crate::expr::tan(x.to_expr()).pow(3);
+        let antideriv = f.clone().integrate(x).unwrap().simplify();
+        let recovered = antideriv.diff(x).simplify();
+        let v = f.eval_f64(&[(x, 0.3)]).unwrap();
+        let rv = recovered.eval_f64(&[(x, 0.3)]).unwrap();
+        assert!((v - rv).abs() < 1e-5);
+    }
+
+    #[test]
+    fn integrate_one_over_x_squared_minus_one() {
+        use crate::expr::const_;
+        let x = symbol("x");
+        let f = const_(Rational::one()) / (x.to_expr().pow(2) - const_(rational(1, 1)));
+        let antideriv = f.clone().integrate(x).unwrap().simplify();
+        assert!(antideriv.to_string().contains("ln"));
+        let recovered = antideriv.diff(x).simplify();
+        let v = f.eval_f64(&[(x, 2.0)]).unwrap();
+        let rv = recovered.eval_f64(&[(x, 2.0)]).unwrap();
+        assert!((v - rv).abs() < 1e-5);
+    }
+
+    #[test]
+    fn integrate_exp_sin_with_phase() {
+        let x = symbol("x");
+        let f = exp(rational(2, 1) * x.to_expr() + rational(1, 1))
+            * sin(rational(3, 1) * x.to_expr() + rational(1, 4));
+        let antideriv = f.clone().integrate(x).unwrap().simplify();
+        let recovered = antideriv.diff(x).simplify();
+        let v = f.eval_f64(&[(x, 0.2)]).unwrap();
+        let rv = recovered.eval_f64(&[(x, 0.2)]).unwrap();
+        assert!((v - rv).abs() < 1e-5, "{rv} vs {v}");
+    }
+
+    #[test]
+    fn integrate_sin_squared_cos_squared() {
+        let x = symbol("x");
+        let f = sin(x).pow(2) * cos(x).pow(2);
+        let antideriv = f.clone().integrate(x).unwrap().simplify();
+        let recovered = antideriv.diff(x).simplify();
+        let v = f.eval_f64(&[(x, 0.4)]).unwrap();
+        let rv = recovered.eval_f64(&[(x, 0.4)]).unwrap();
+        assert!((v - rv).abs() < 1e-5);
+    }
+
+    #[test]
+    fn integrate_sin_cubed_cos_squared() {
+        let x = symbol("x");
+        let f = sin(x).pow(3) * cos(x).pow(2);
+        let antideriv = f.clone().integrate(x).unwrap().simplify();
+        let recovered = antideriv.diff(x).simplify();
+        let v = f.eval_f64(&[(x, 0.35)]).unwrap();
+        let rv = recovered.eval_f64(&[(x, 0.35)]).unwrap();
+        assert!((v - rv).abs() < 1e-5);
+    }
+
+    #[test]
+    fn integrate_sec_fourth() {
+        let x = symbol("x");
+        let f = cos(x).pow(-4);
+        let antideriv = f.clone().integrate(x).unwrap().simplify();
+        let recovered = antideriv.diff(x).simplify();
+        let v = f.eval_f64(&[(x, 0.25)]).unwrap();
+        let rv = recovered.eval_f64(&[(x, 0.25)]).unwrap();
+        assert!((v - rv).abs() < 1e-5, "{rv} vs {v}");
+    }
+
+    #[test]
+    fn integrate_sin_cos_with_phase() {
+        let x = symbol("x");
+        let f = sin(x.to_expr() + rational(1, 4)) * cos(rational(2, 1) * x.to_expr());
+        let antideriv = f.clone().integrate(x).unwrap().simplify();
+        let recovered = antideriv.diff(x).simplify();
+        let v = f.eval_f64(&[(x, 0.5)]).unwrap();
+        let rv = recovered.eval_f64(&[(x, 0.5)]).unwrap();
+        assert!((v - rv).abs() < 1e-5);
+    }
+
+    #[test]
+    fn integrate_x_exp_by_parts() {
+        let x = symbol("x");
+        let f = x.to_expr() * exp(x);
+        let F = f.clone().integrate(x).unwrap().simplify();
+        let recovered = F.diff(x).simplify();
+        let v = f.eval_f64(&[(x, 1.0)]).unwrap();
+        let rv = recovered.eval_f64(&[(x, 1.0)]).unwrap();
+        assert!((v - rv).abs() < 1e-6);
     }
 
     #[test]

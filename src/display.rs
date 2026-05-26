@@ -116,6 +116,7 @@ fn fmt_expr_inner(e: &Expr, f: &mut fmt::Formatter<'_>, parent_prec: u8) -> fmt:
         ExprKind::Sin(e) => write!(f, "sin({e})")?,
         ExprKind::Cos(e) => write!(f, "cos({e})")?,
         ExprKind::Tan(e) => write!(f, "tan({e})")?,
+        ExprKind::Atan(e) => write!(f, "atan({e})")?,
         ExprKind::Exp(inner) => {
             if matches!(inner.kind(), ExprKind::Var(_)) {
                 write!(f, "e^")?;

@@ -35,9 +35,14 @@ pub fn eval(expr: Expr, env: &[(Symbol, Rational)]) -> Result<Rational, EvalErro
         }
         ExprKind::Neg(e) => Ok(-eval(e.clone(), env)?),
         ExprKind::Pow(base, exp) => eval_pow(base.clone(), exp.clone(), env),
-        ExprKind::Sin(_) | ExprKind::Cos(_) | ExprKind::Tan(_) | ExprKind::Exp(_) | ExprKind::Ln(_) => {
-            Err(EvalError::Undefined("transcendental functions require eval_f64"))
-        }
+        ExprKind::Sin(_)
+        | ExprKind::Cos(_)
+        | ExprKind::Tan(_)
+        | ExprKind::Atan(_)
+        | ExprKind::Exp(_)
+        | ExprKind::Ln(_) => Err(EvalError::Undefined(
+            "transcendental functions require eval_f64",
+        )),
     }
 }
 
@@ -76,6 +81,7 @@ pub fn eval_f64(expr: Expr, env: &[(Symbol, f64)]) -> Result<f64, EvalError> {
         ExprKind::Sin(e) => Ok(eval_f64(e.clone(), env)?.sin()),
         ExprKind::Cos(e) => Ok(eval_f64(e.clone(), env)?.cos()),
         ExprKind::Tan(e) => Ok(eval_f64(e.clone(), env)?.tan()),
+        ExprKind::Atan(e) => Ok(eval_f64(e.clone(), env)?.atan()),
         ExprKind::Exp(e) => Ok(eval_f64(e.clone(), env)?.exp()),
         ExprKind::Ln(e) => {
             let v = eval_f64(e.clone(), env)?;

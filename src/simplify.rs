@@ -1,6 +1,12 @@
 use crate::expr::{add, const_, div, mul, neg, pow, sub, Expr, ExprKind};
 use crate::rational::Rational;
+use std::cell::Cell;
 use std::collections::BTreeMap;
+
+thread_local! {
+    static SIMPLIFY_DEPTH: Cell<u32> = const { Cell::new(0) };
+}
+const SIMPLIFY_RECURSION_LIMIT: u32 = 256;
 
 pub fn simplify(expr: Expr) -> Expr {
     let e = simplify_once(expr);
@@ -34,6 +40,7 @@ fn normalize_polynomial_shapes(e: Expr) -> Expr {
         ExprKind::Cos(inner) => crate::expr::cos(normalize_polynomial_shapes(inner)),
         ExprKind::Tan(inner) => crate::expr::tan(normalize_polynomial_shapes(inner)),
         ExprKind::Ln(inner) => crate::expr::ln(normalize_polynomial_shapes(inner)),
+        ExprKind::Atan(inner) => crate::expr::atan(normalize_polynomial_shapes(inner)),
         _ => e,
     }
 }
@@ -41,20 +48,32 @@ fn normalize_polynomial_shapes(e: Expr) -> Expr {
 const SIMPLIFY_MAX_DEPTH: u32 = 64;
 
 fn simplify_once(expr: Expr) -> Expr {
+    let depth = SIMPLIFY_DEPTH.with(|d| d.get());
+    if depth > SIMPLIFY_RECURSION_LIMIT {
+        return expr;
+    }
+    SIMPLIFY_DEPTH.with(|d| d.set(depth + 1));
+    let out = simplify_once_inner(expr);
+    SIMPLIFY_DEPTH.with(|d| d.set(depth));
+    out
+}
+
+fn simplify_once_inner(expr: Expr) -> Expr {
     match expr.kind().clone() {
         ExprKind::Const(c) => const_(c),
         ExprKind::Var(s) => Expr::var(s),
-        ExprKind::Add(a, b) => simplify_add(simplify_once(a), simplify_once(b)),
-        ExprKind::Sub(a, b) => simplify_sub(simplify_once(a), simplify_once(b)),
-        ExprKind::Mul(a, b) => simplify_mul(simplify_once(a), simplify_once(b)),
-        ExprKind::Div(a, b) => simplify_div(simplify_once(a), simplify_once(b)),
-        ExprKind::Neg(e) => simplify_neg(simplify_once(e)),
-        ExprKind::Pow(base, exp) => simplify_pow(simplify_once(base), simplify_once(exp)),
-        ExprKind::Sin(e) => crate::expr::sin(simplify_trig_arg(simplify_once(e))),
-        ExprKind::Cos(e) => crate::expr::cos(simplify_trig_arg(simplify_once(e))),
-        ExprKind::Tan(e) => crate::expr::tan(simplify_trig_arg(simplify_once(e))),
-        ExprKind::Exp(e) => crate::expr::exp(simplify_once(e)),
-        ExprKind::Ln(e) => simplify_ln(simplify_once(e)),
+        ExprKind::Add(a, b) => simplify_add(simplify_once_inner(a), simplify_once_inner(b)),
+        ExprKind::Sub(a, b) => simplify_sub(simplify_once_inner(a), simplify_once_inner(b)),
+        ExprKind::Mul(a, b) => simplify_mul(simplify_once_inner(a), simplify_once_inner(b)),
+        ExprKind::Div(a, b) => simplify_div(simplify_once_inner(a), simplify_once_inner(b)),
+        ExprKind::Neg(e) => simplify_neg(simplify_once_inner(e)),
+        ExprKind::Pow(base, exp) => simplify_pow(simplify_once_inner(base), simplify_once_inner(exp)),
+        ExprKind::Sin(e) => crate::expr::sin(simplify_trig_arg(simplify_once_inner(e))),
+        ExprKind::Cos(e) => crate::expr::cos(simplify_trig_arg(simplify_once_inner(e))),
+        ExprKind::Tan(e) => crate::expr::tan(simplify_trig_arg(simplify_once_inner(e))),
+        ExprKind::Exp(e) => crate::expr::exp(simplify_once_inner(e)),
+        ExprKind::Ln(e) => simplify_ln(simplify_once_inner(e)),
+        ExprKind::Atan(e) => crate::expr::atan(simplify_trig_arg(simplify_once_inner(e))),
     }
 }
 
@@ -69,7 +88,9 @@ fn simplify_factor_exp_terms(e: Expr, depth: u32) -> Expr {
             let a = simplify_factor_exp_terms(simplify_once(a), d);
             let b = simplify_factor_exp_terms(simplify_once(b), d);
             if let Some(factored) = try_factor_exp_add(&a, &b) {
-                return simplify_factor_exp_terms(simplify_once(factored), d);
+                if factored != add(a.clone(), b.clone()) {
+                    return simplify_factor_exp_terms(simplify_once(factored), d);
+                }
             }
             add(a, b)
         }
@@ -134,17 +155,12 @@ fn simplify_trig_arg(e: Expr) -> Expr {
 }
 
 fn simplify_add(a: Expr, b: Expr) -> Expr {
-    let sum = add(simplify_once(a.clone()), simplify_once(b.clone()));
-    crate::poly::try_polynomial_normal_form(sum).unwrap_or_else(|| {
-        let mut terms = Vec::new();
-        flatten_add_terms(&a, &mut terms);
-        flatten_add_terms(&b, &mut terms);
-        let mut acc = const_(Rational::zero());
-        for t in terms {
-            acc = simplify_add_step(acc, t);
-        }
-        acc
-    })
+    let a = simplify_once_inner(a);
+    let b = simplify_once_inner(b);
+    if let Some(p) = crate::poly::try_polynomial_normal_form(add(a.clone(), b.clone())) {
+        return p;
+    }
+    simplify_add_step(a, b)
 }
 
 fn simplify_add_step(a: Expr, b: Expr) -> Expr {
@@ -162,21 +178,6 @@ fn simplify_add_step(a: Expr, b: Expr) -> Expr {
     }
     try_merge_polynomial_terms(&a, &b)
         .unwrap_or_else(|| add(a, b))
-}
-
-fn flatten_add_terms(e: &Expr, out: &mut Vec<Expr>) {
-    match e.kind() {
-        ExprKind::Add(l, r) => {
-            flatten_add_terms(l, out);
-            flatten_add_terms(r, out);
-        }
-        ExprKind::Sub(l, r) => {
-            flatten_add_terms(l, out);
-            flatten_add_terms(r, out);
-            // Sub handled as add(a, neg(b)) at upper level if needed
-        }
-        _ => out.push(e.clone()),
-    }
 }
 
 fn simplify_sub(a: Expr, b: Expr) -> Expr {

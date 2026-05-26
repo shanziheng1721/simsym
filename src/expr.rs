@@ -17,6 +17,7 @@ pub enum ExprKind {
     Sin(Expr),
     Cos(Expr),
     Tan(Expr),
+    Atan(Expr),
     Exp(Expr),
     Ln(Expr),
 }
@@ -51,6 +52,11 @@ impl Expr {
 
     pub fn diff(self, var: Symbol) -> Self {
         crate::calculus::diff::diff(self, var)
+    }
+
+    /// Derivative without simplifying (see [`crate::calculus::diff_without_simplify`]).
+    pub fn diff_without_simplify(self, var: Symbol) -> Self {
+        crate::calculus::diff::diff_without_simplify(self, var)
     }
 
     pub fn integrate(self, var: Symbol) -> Result<Self, crate::calculus::integrate::IntegrateError> {
@@ -134,6 +140,10 @@ pub fn cos(e: Expr) -> Expr {
 
 pub fn tan(e: Expr) -> Expr {
     Expr::from_kind(ExprKind::Tan(e))
+}
+
+pub fn atan(e: Expr) -> Expr {
+    Expr::from_kind(ExprKind::Atan(e))
 }
 
 pub fn exp(e: Expr) -> Expr {

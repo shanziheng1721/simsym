@@ -1,10 +1,10 @@
 use num_rational::Ratio;
 use num_traits::{One, Signed, Zero};
 use std::fmt;
-use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub};
+use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
 
 /// Exact rational constant (reduced `i64` ratio).
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Rational(Ratio<i64>);
 
 impl Rational {
@@ -46,6 +46,14 @@ impl Rational {
 
     pub fn inner(self) -> Ratio<i64> {
         self.0
+    }
+
+    pub fn numer(self) -> i64 {
+        *self.0.numer()
+    }
+
+    pub fn denom(self) -> i64 {
+        *self.0.denom()
     }
 }
 
@@ -151,6 +159,12 @@ impl Div for Rational {
 impl AddAssign for Rational {
     fn add_assign(&mut self, rhs: Self) {
         self.0 += rhs.0;
+    }
+}
+
+impl SubAssign for Rational {
+    fn sub_assign(&mut self, rhs: Self) {
+        self.0 -= rhs.0;
     }
 }
 

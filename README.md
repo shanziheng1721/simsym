@@ -41,7 +41,7 @@ let num = integrate_numeric(&sin(x), x, 0.0, std::f64::consts::PI, &[], NumericO
 
 ## Limitations
 
-Symbolic integration is **rule-based**, not a full Risch algorithm. When `integrate` returns `IntegrateError::NoRule`, use `integrate_numeric` or `integrate_definite` (which falls back automatically).
+Symbolic integration is **rule-based** (polynomials, affine trig/exp, `e^x×P`, parts, `sin^n`/`cos^n` reduction, partial fractions for low-degree `P/Q` including `atan` terms, `sin·cos` products, etc.) — not a full Risch algorithm. See [docs/INTEGRATION.md](docs/INTEGRATION.md) for the algorithm stack. When `integrate` returns `IntegrateError::NoRule`, use `integrate_numeric` or `integrate_definite` (which falls back automatically).
 
 Transcendental functions are not supported in exact `eval`; use `eval_f64`.
 

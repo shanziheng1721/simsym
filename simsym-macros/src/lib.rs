@@ -99,7 +99,7 @@ fn parse_atom(tokens: &[TokenTree], pos: &mut usize) -> syn::Result<proc_macro2:
         }
         TokenTree::Ident(id) => {
             let name = id.to_string();
-            if matches!(name.as_str(), "sin" | "cos" | "tan" | "exp" | "ln") {
+            if matches!(name.as_str(), "sin" | "cos" | "tan" | "atan" | "exp" | "ln") {
                 *pos += 1;
                 let args = parse_paren_args(tokens, pos)?;
                 let fname = syn::Ident::new(&name, id.span());
