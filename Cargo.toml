@@ -19,9 +19,12 @@ thiserror = "2"
 serde = { version = "1", optional = true, features = ["derive"] }
 
 [features]
-default = []
-bigint = ["num-rational/num-bigint", "dep:num-bigint"]
+default = ["simplify", "diff", "integrate"]
+simplify = []
+diff = []
+integrate = ["diff"]
 serde = ["dep:serde", "num-rational/serde"]
+bigint = ["num-rational/num-bigint", "dep:num-bigint"]
 
 [dependencies.num-bigint]
 version = "0.4"
@@ -33,3 +36,23 @@ proptest = "1"
 [lib]
 name = "simsym"
 path = "src/lib.rs"
+
+[[example]]
+name = "calculus"
+required-features = ["integrate", "diff", "simplify"]
+
+[[example]]
+name = "multivar"
+required-features = ["diff", "simplify"]
+
+[[example]]
+name = "numeric_integral"
+required-features = ["integrate"]
+
+[[test]]
+name = "proptest_diff"
+required-features = ["diff", "simplify"]
+
+[[test]]
+name = "macro_test"
+required-features = ["simplify", "integrate", "diff"]

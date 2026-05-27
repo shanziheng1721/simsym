@@ -3,10 +3,18 @@ use crate::rational::Rational;
 use crate::symbol::Symbol;
 
 pub fn diff(expr: Expr, var: Symbol) -> Expr {
-    diff_without_simplify(expr, var).simplify()
+    let raw = diff_without_simplify(expr, var);
+    #[cfg(feature = "simplify")]
+    {
+        raw.simplify()
+    }
+    #[cfg(not(feature = "simplify"))]
+    {
+        raw
+    }
 }
 
-/// Symbolic derivative without calling [`crate::simplify::simplify`].
+/// Symbolic derivative without calling [`Expr::simplify`] (no-op when the `simplify` feature is off).
 ///
 /// Prefer this when the simplified form is expensive to compute but a raw
 /// derivative tree is enough (e.g. numeric spot-checks via [`Expr::eval_f64`]).

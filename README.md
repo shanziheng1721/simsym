@@ -55,5 +55,21 @@ cargo run --example numeric_integral
 
 ## Optional features
 
+Cargo features (enabled by default):
+
+| Feature | Enables |
+|---------|---------|
+| `simplify` | [`Expr::simplify`](https://docs.rs/simsym/latest/simsym/struct.Expr.html#method.simplify) |
+| `diff` | [`Expr::diff`](https://docs.rs/simsym/latest/simsym/struct.Expr.html#method.diff), `gradient`, `hessian` |
+| `integrate` | [`Expr::integrate`](https://docs.rs/simsym/latest/simsym/struct.Expr.html#method.integrate), `integrate_definite` (implies `diff`) |
+
+Minimal build (AST + rationals + evaluation only):
+
+```bash
+cargo build --no-default-features
+```
+
+Other optional features:
+
 - `serde` — serialize rationals as `(numer, denom)`
 - `bigint` — `BigRational` alias for wider coefficients (see `simsym::rational_big`)

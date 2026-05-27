@@ -1,3 +1,4 @@
+#[cfg(feature = "integrate")]
 use crate::calculus::integrate::{integrate, IntegrateError};
 use crate::eval::EvalError;
 use crate::expr::Expr;
@@ -6,6 +7,7 @@ use crate::symbol::Symbol;
 
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum DefiniteIntegralError {
+    #[cfg(feature = "integrate")]
     #[error(transparent)]
     Integrate(#[from] IntegrateError),
     #[error(transparent)]
@@ -41,6 +43,7 @@ pub fn integrate_numeric(
         .map_err(DefiniteIntegralError::Numeric)
 }
 
+#[cfg(feature = "integrate")]
 pub fn integrate_definite(
     expr: Expr,
     var: Symbol,
@@ -71,6 +74,7 @@ pub fn integrate_definite(
     }
 }
 
+#[cfg(feature = "integrate")]
 fn float_to_rational_approx(v: f64) -> Option<Rational> {
     if v.fract() == 0.0 && v.is_finite() && v >= i64::MIN as f64 && v <= i64::MAX as f64 {
         return Some(Rational::from_integer(v as i64));
@@ -80,6 +84,7 @@ fn float_to_rational_approx(v: f64) -> Option<Rational> {
     Some(Rational::new(n, DEN))
 }
 
+#[cfg(feature = "integrate")]
 fn substitute_and_eval(
     expr: Expr,
     var: Symbol,

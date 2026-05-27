@@ -34,12 +34,23 @@ pub enum IntegrateError {
     NonPositiveLogArgument,
 }
 
+fn finalize_integral(expr: Expr) -> Expr {
+    #[cfg(feature = "simplify")]
+    {
+        expr.simplify()
+    }
+    #[cfg(not(feature = "simplify"))]
+    {
+        expr
+    }
+}
+
 pub fn integrate(expr: Expr, var: Symbol) -> Result<Expr, IntegrateError> {
     if let Some(result) = substitution::try_u_substitution(&expr, var) {
-        return Ok(result.simplify());
+        return Ok(finalize_integral(result));
     }
     let result = integrate_kind(expr.kind(), var)?;
-    Ok(result.simplify())
+    Ok(finalize_integral(result))
 }
 
 fn integrate_kind(kind: &ExprKind, var: Symbol) -> Result<Expr, IntegrateError> {

@@ -1,40 +1,62 @@
 //! simsym — a simple symbolic computation library.
 //!
+//! ## Cargo features
+//!
+//! - **`simplify`** (default): algebraic simplification via [`Expr::simplify`]
+//! - **`diff`** (default): symbolic differentiation, [`Expr::gradient`], [`Expr::hessian`]
+//! - **`integrate`** (default, implies `diff`): symbolic integration and [`Expr::integrate_definite`]
+//!
+//! Build a minimal core (expression AST, rationals, evaluation only):
+//!
+//! ```bash
+//! cargo build --no-default-features
+//! ```
+//!
 //! ```rust
 //! use simsym::prelude::*;
-//!
 //! let x = symbol("x");
 //! let f = x.pow(2) + rational(2, 1) * x;
-//! let df = f.clone().diff(x);
 //! let val = f.eval(&[(x, rational(1, 2))]).unwrap();
 //! assert_eq!(val, rational(5, 4));
 //! ```
 
-pub mod calculus;
 pub mod display;
 pub mod eval;
 pub mod expr;
 mod ops_ext;
 pub mod poly;
 pub mod rational;
-pub mod simplify;
 pub mod symbol;
+
+#[cfg(feature = "simplify")]
+pub mod simplify;
+#[cfg(not(feature = "simplify"))]
+pub mod simplify_nop;
+#[cfg(not(feature = "simplify"))]
+pub use simplify_nop as simplify;
+
+#[cfg(any(feature = "diff", feature = "integrate"))]
+pub mod calculus;
 
 #[cfg(feature = "bigint")]
 pub mod rational_big;
 
-pub use calculus::{
-    diff_without_simplify, gradient, hessian, integrate_definite, integrate_numeric,
-    DefiniteIntegralError, IntegrateError, NumericOptions,
-};
 pub use eval::EvalError;
 pub use expr::Expr;
 pub use rational::{rational, rational_from_i32, Rational};
 pub use symbol::{symbol, Symbol};
 
+#[cfg(any(feature = "diff", feature = "integrate"))]
+pub use calculus::{integrate_numeric, DefiniteIntegralError, NumericOptions};
+
+#[cfg(feature = "integrate")]
+pub use calculus::{integrate, integrate_definite, IntegrateError};
+
+#[cfg(feature = "diff")]
+pub use calculus::{diff, diff_without_simplify, gradient, hessian};
+
 pub use simsym_macros::expr;
 
-/// Elementary function constructors.
 pub fn sin(e: impl Into<Expr>) -> Expr {
     expr::sin(e.into())
 }
@@ -56,10 +78,15 @@ pub fn atan(e: impl Into<Expr>) -> Expr {
 
 pub mod prelude {
     pub use crate::{
-        atan, cos, diff_without_simplify, exp, expr, gradient, hessian, integrate_definite,
-        integrate_numeric, ln, rational, rational_from_i32, sin, symbol, tan,
-        DefiniteIntegralError, EvalError, Expr, IntegrateError, NumericOptions, Rational, Symbol,
+        atan, cos, exp, expr, ln, rational, rational_from_i32, sin, symbol, tan, EvalError, Expr,
+        Rational, Symbol,
     };
+    #[cfg(any(feature = "diff", feature = "integrate"))]
+    pub use crate::{DefiniteIntegralError, NumericOptions, integrate_numeric};
+    #[cfg(feature = "integrate")]
+    pub use crate::{integrate, integrate_definite, IntegrateError};
+    #[cfg(feature = "diff")]
+    pub use crate::{diff_without_simplify, gradient, hessian};
 }
 
 #[cfg(test)]
@@ -67,6 +94,15 @@ mod tests {
     use super::prelude::*;
 
     #[test]
+    fn eval_exact() {
+        let x = symbol("x");
+        let f = x.pow(2) + rational(2, 1) * x;
+        let v = f.eval(&[(x, rational(1, 2))]).unwrap();
+        assert_eq!(v, rational(5, 4));
+    }
+
+    #[test]
+    #[cfg(all(feature = "diff", feature = "simplify"))]
     fn diff_power() {
         let x = symbol("x");
         let f = x.pow(2);
@@ -76,6 +112,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(all(feature = "integrate", feature = "diff"))]
     fn diff_without_simplify_matches_numeric() {
         let x = symbol("x");
         let f = sin(x).pow(3) * cos(x).pow(2);
@@ -87,14 +124,7 @@ mod tests {
     }
 
     #[test]
-    fn eval_exact() {
-        let x = symbol("x");
-        let f = x.pow(2) + rational(2, 1) * x;
-        let v = f.eval(&[(x, rational(1, 2))]).unwrap();
-        assert_eq!(v, rational(5, 4));
-    }
-
-    #[test]
+    #[cfg(all(feature = "integrate", feature = "simplify"))]
     fn integrate_polynomial() {
         let x = symbol("x");
         let f = x.pow(2);
@@ -104,6 +134,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "integrate")]
     fn integrate_exp_manual() {
         let x = symbol("x");
         let f = exp(x) * (x.pow(3) + rational(2, 1) * x);
@@ -111,6 +142,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(all(feature = "diff", feature = "simplify"))]
     fn diff_exp_times_polynomial() {
         let x = symbol("x");
         let f = exp(x) * (x.pow(3) + rational(2, 1) * x);
@@ -127,6 +159,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(all(feature = "integrate", feature = "diff", feature = "simplify"))]
     fn integrate_exp_times_polynomial() {
         let x = symbol("x");
         let f = exp(x) * (x.pow(3) + rational(2, 1) * x);
@@ -143,6 +176,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "simplify")]
     fn polynomial_normal_form_orders_terms() {
         let x = symbol("x");
         let messy = x.pow(3) - rational(3, 1) * x.pow(2) + rational(6, 1) * x + (-rational(6, 1))
@@ -154,6 +188,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(all(feature = "integrate", feature = "simplify"))]
     fn integrate_cancels_coefficients_in_quotient() {
         let x = symbol("x");
         let f = x.pow(3) + rational(2, 1) * x;
@@ -165,6 +200,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(all(feature = "integrate", feature = "diff", feature = "simplify"))]
     fn sin_diff_and_integrate() {
         let x = symbol("x");
         let f = sin(x);
@@ -175,6 +211,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(all(feature = "diff", feature = "simplify"))]
     fn gradient_two_vars() {
         let x = symbol("x");
         let y = symbol("y");
@@ -185,6 +222,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(all(feature = "diff", feature = "simplify"))]
     fn hessian_bilinear() {
         let x = symbol("x");
         let y = symbol("y");
@@ -197,6 +235,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(all(feature = "integrate", feature = "simplify"))]
     fn integrate_tan_and_ln() {
         let x = symbol("x");
         let tan_int = crate::expr::tan(x.to_expr()).integrate(x).unwrap().simplify();
@@ -206,34 +245,36 @@ mod tests {
         );
         let ln_int = crate::expr::ln(x.to_expr()).integrate(x).unwrap().simplify();
         let x_expr = x.to_expr();
-        let expected_ln =
-            x_expr.clone() * crate::expr::ln(x_expr.clone()) - x_expr;
+        let expected_ln = x_expr.clone() * crate::expr::ln(x_expr.clone()) - x_expr;
         assert_eq!(ln_int.to_string(), expected_ln.simplify().to_string());
     }
 
     #[test]
+    #[cfg(all(feature = "integrate", feature = "diff", feature = "simplify"))]
     fn integrate_sin_squared() {
         let x = symbol("x");
         let f = sin(x).pow(2);
-        let F = f.clone().integrate(x).unwrap().simplify();
-        let recovered = F.diff(x).simplify();
+        let f_int = f.clone().integrate(x).unwrap().simplify();
+        let recovered = f_int.diff(x).simplify();
         let v = f.eval_f64(&[(x, 0.3)]).unwrap();
         let rv = recovered.eval_f64(&[(x, 0.3)]).unwrap();
         assert!((v - rv).abs() < 1e-6);
     }
 
     #[test]
+    #[cfg(all(feature = "integrate", feature = "diff", feature = "simplify"))]
     fn integrate_sin_cos_product() {
         let x = symbol("x");
         let f = sin(x) * cos(x);
-        let F = f.clone().integrate(x).unwrap().simplify();
-        let recovered = F.diff(x).simplify();
+        let f_int = f.clone().integrate(x).unwrap().simplify();
+        let recovered = f_int.diff(x).simplify();
         let v = f.eval_f64(&[(x, 0.4)]).unwrap();
         let rv = recovered.eval_f64(&[(x, 0.4)]).unwrap();
         assert!((v - rv).abs() < 1e-5);
     }
 
     #[test]
+    #[cfg(all(feature = "integrate", feature = "simplify"))]
     fn integrate_partial_fractions() {
         use crate::expr::const_;
         let x = symbol("x");
@@ -248,6 +289,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(all(feature = "integrate", feature = "diff", feature = "simplify"))]
     fn integrate_one_over_x_squared_plus_one() {
         use crate::expr::const_;
         let x = symbol("x");
@@ -264,6 +306,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(all(feature = "integrate", feature = "diff", feature = "simplify"))]
     fn integrate_rational_polynomial_quotient() {
         use crate::expr::const_;
         let x = symbol("x");
@@ -277,6 +320,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(all(feature = "integrate", feature = "diff", feature = "simplify"))]
     fn integrate_sin_fourth_power() {
         let x = symbol("x");
         let f = sin(x).pow(4);
@@ -288,6 +332,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(all(feature = "integrate", feature = "diff", feature = "simplify"))]
     fn integrate_atan_x() {
         let x = symbol("x");
         let f = crate::expr::atan(x.to_expr());
@@ -300,6 +345,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(all(feature = "integrate", feature = "diff", feature = "simplify"))]
     fn integrate_exp_sin() {
         let x = symbol("x");
         let f = exp(x) * sin(x);
@@ -311,6 +357,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(all(feature = "integrate", feature = "diff", feature = "simplify"))]
     fn integrate_x_squared_ln() {
         let x = symbol("x");
         let f = x.to_expr().pow(2) * crate::expr::ln(x.to_expr());
@@ -322,6 +369,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(all(feature = "integrate", feature = "diff", feature = "simplify"))]
     fn integrate_tan_cubed() {
         let x = symbol("x");
         let f = crate::expr::tan(x.to_expr()).pow(3);
@@ -333,6 +381,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(all(feature = "integrate", feature = "diff", feature = "simplify"))]
     fn integrate_one_over_x_squared_minus_one() {
         use crate::expr::const_;
         let x = symbol("x");
@@ -346,6 +395,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(all(feature = "integrate", feature = "diff", feature = "simplify"))]
     fn integrate_exp_sin_with_phase() {
         let x = symbol("x");
         let f = exp(rational(2, 1) * x.to_expr() + rational(1, 1))
@@ -358,6 +408,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(all(feature = "integrate", feature = "diff", feature = "simplify"))]
     fn integrate_sin_squared_cos_squared() {
         let x = symbol("x");
         let f = sin(x).pow(2) * cos(x).pow(2);
@@ -369,6 +420,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(all(feature = "integrate", feature = "diff", feature = "simplify"))]
     fn integrate_sin_cubed_cos_squared() {
         let x = symbol("x");
         let f = sin(x).pow(3) * cos(x).pow(2);
@@ -380,6 +432,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(all(feature = "integrate", feature = "diff", feature = "simplify"))]
     fn integrate_sec_fourth() {
         let x = symbol("x");
         let f = cos(x).pow(-4);
@@ -391,6 +444,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(all(feature = "integrate", feature = "diff", feature = "simplify"))]
     fn integrate_sin_cos_with_phase() {
         let x = symbol("x");
         let f = sin(x.to_expr() + rational(1, 4)) * cos(rational(2, 1) * x.to_expr());
@@ -402,17 +456,19 @@ mod tests {
     }
 
     #[test]
+    #[cfg(all(feature = "integrate", feature = "diff", feature = "simplify"))]
     fn integrate_x_exp_by_parts() {
         let x = symbol("x");
         let f = x.to_expr() * exp(x);
-        let F = f.clone().integrate(x).unwrap().simplify();
-        let recovered = F.diff(x).simplify();
+        let f_int = f.clone().integrate(x).unwrap().simplify();
+        let recovered = f_int.diff(x).simplify();
         let v = f.eval_f64(&[(x, 1.0)]).unwrap();
         let rv = recovered.eval_f64(&[(x, 1.0)]).unwrap();
         assert!((v - rv).abs() < 1e-6);
     }
 
     #[test]
+    #[cfg(feature = "integrate")]
     fn numeric_integral_sin() {
         let x = symbol("x");
         let f = sin(x);
@@ -420,5 +476,4 @@ mod tests {
         let val = integrate_numeric(&f, x, 0.0, pi, &[], NumericOptions::default()).unwrap();
         assert!((val - 2.0).abs() < 1e-6);
     }
-
 }

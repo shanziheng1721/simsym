@@ -46,27 +46,37 @@ impl Expr {
         crate::expr::pow(self, exp.into())
     }
 
+    /// Algebraic simplification (requires the `simplify` feature; otherwise returns `self`).
     pub fn simplify(self) -> Self {
         crate::simplify::simplify(self)
     }
 
+    /// Symbolic derivative (requires the `diff` feature).
+    #[cfg(feature = "diff")]
     pub fn diff(self, var: Symbol) -> Self {
         crate::calculus::diff::diff(self, var)
     }
 
-    /// Derivative without simplifying (see [`crate::calculus::diff_without_simplify`]).
+    /// Derivative without final simplification (requires the `diff` feature).
+    #[cfg(feature = "diff")]
     pub fn diff_without_simplify(self, var: Symbol) -> Self {
         crate::calculus::diff::diff_without_simplify(self, var)
     }
 
+    /// Symbolic integration (requires the `integrate` feature).
+    #[cfg(feature = "integrate")]
     pub fn integrate(self, var: Symbol) -> Result<Self, crate::calculus::integrate::IntegrateError> {
         crate::calculus::integrate::integrate(self, var)
     }
 
+    /// Partial derivatives (requires the `diff` feature).
+    #[cfg(feature = "diff")]
     pub fn gradient(self, vars: &[Symbol]) -> Vec<Self> {
         crate::calculus::multivar::gradient(self, vars)
     }
 
+    /// Second partial derivatives (requires the `diff` feature).
+    #[cfg(feature = "diff")]
     pub fn hessian(self, vars: &[Symbol]) -> Vec<Vec<Self>> {
         crate::calculus::multivar::hessian(self, vars)
     }
@@ -85,6 +95,8 @@ impl Expr {
         crate::eval::eval_f64(self, env)
     }
 
+    /// Definite integral via antiderivative or numeric fallback (requires `integrate`).
+    #[cfg(feature = "integrate")]
     pub fn integrate_definite(
         self,
         var: Symbol,
