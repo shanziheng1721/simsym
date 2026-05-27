@@ -3,7 +3,9 @@ use crate::expr::Expr;
 use crate::symbol::Symbol;
 
 pub fn gradient(expr: Expr, vars: &[Symbol]) -> Vec<Expr> {
-    vars.iter().map(|&v| diff(expr.clone(), v)).collect()
+    vars.iter()
+        .map(|&v| diff(expr.clone(), v))
+        .collect()
 }
 
 pub fn hessian(expr: Expr, vars: &[Symbol]) -> Vec<Vec<Expr>> {

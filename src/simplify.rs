@@ -16,7 +16,7 @@ pub fn simplify(expr: Expr) -> Expr {
 
 /// Apply polynomial normal form to sums and to `e^x * poly` factors.
 fn normalize_polynomial_shapes(e: Expr) -> Expr {
-    match e.kind().clone() {
+    match e.into_kind() {
         ExprKind::Mul(l, r) => {
             let l = normalize_polynomial_shapes(l);
             let r = normalize_polynomial_shapes(r);
@@ -32,7 +32,8 @@ fn normalize_polynomial_shapes(e: Expr) -> Expr {
             }
             mul(l, r)
         }
-        ExprKind::Add(..) | ExprKind::Sub(..) | ExprKind::Neg(_) => {
+        kind @ (ExprKind::Add(..) | ExprKind::Sub(..) | ExprKind::Neg(_)) => {
+            let e = Expr::from_kind(kind);
             crate::poly::try_polynomial_normal_form(e.clone()).unwrap_or(e)
         }
         ExprKind::Exp(inner) => crate::expr::exp(normalize_polynomial_shapes(inner)),
@@ -41,7 +42,7 @@ fn normalize_polynomial_shapes(e: Expr) -> Expr {
         ExprKind::Tan(inner) => crate::expr::tan(normalize_polynomial_shapes(inner)),
         ExprKind::Ln(inner) => crate::expr::ln(normalize_polynomial_shapes(inner)),
         ExprKind::Atan(inner) => crate::expr::atan(normalize_polynomial_shapes(inner)),
-        _ => e,
+        k => Expr::from_kind(k),
     }
 }
 
@@ -59,7 +60,7 @@ fn simplify_once(expr: Expr) -> Expr {
 }
 
 fn simplify_once_inner(expr: Expr) -> Expr {
-    match expr.kind().clone() {
+    match expr.into_kind() {
         ExprKind::Const(c) => const_(c),
         ExprKind::Var(s) => Expr::var(s),
         ExprKind::Add(a, b) => simplify_add(simplify_once_inner(a), simplify_once_inner(b)),
@@ -83,12 +84,13 @@ fn simplify_factor_exp_terms(e: Expr, depth: u32) -> Expr {
         return e;
     }
     let d = depth + 1;
-    match e.kind().clone() {
+    match e.into_kind() {
         ExprKind::Add(a, b) => {
             let a = simplify_factor_exp_terms(simplify_once(a), d);
             let b = simplify_factor_exp_terms(simplify_once(b), d);
             if let Some(factored) = try_factor_exp_add(&a, &b) {
-                if factored != add(a.clone(), b.clone()) {
+                let unchanged = add(a.clone(), b.clone());
+                if factored != unchanged {
                     return simplify_factor_exp_terms(simplify_once(factored), d);
                 }
             }
@@ -103,7 +105,7 @@ fn simplify_factor_exp_terms(e: Expr, depth: u32) -> Expr {
             simplify_factor_exp_terms(simplify_once(r), d),
         ),
         ExprKind::Neg(inner) => neg(simplify_factor_exp_terms(simplify_once(inner), d)),
-        _ => e,
+        k => Expr::from_kind(k),
     }
 }
 

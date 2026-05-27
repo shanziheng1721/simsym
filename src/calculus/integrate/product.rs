@@ -8,16 +8,16 @@ use super::util::{
     trig_affine,
 };
 use super::trig_product::try_sin_cos_power_product;
-use super::{integrate, IntegrateError};
+use super::{integrate, integrate_expr, IntegrateError};
 
 const PARTS_MAX_DEPTH: u8 = 4;
 
 pub fn integrate_product(f: Expr, g: Expr, var: Symbol) -> Result<Expr, IntegrateError> {
     if !contains_var(&f, var) {
-        return Ok(f * integrate(g, var)?);
+        return Ok(f * integrate_expr(g, var)?);
     }
     if !contains_var(&g, var) {
-        return Ok(g * integrate(f, var)?);
+        return Ok(g * integrate_expr(f, var)?);
     }
 
     if let Some(integ) = integrate_exp_times_polynomial(&f, &g, var) {

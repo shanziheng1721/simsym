@@ -3,11 +3,11 @@ use crate::rational::Rational;
 use crate::symbol::Symbol;
 
 use super::util::{as_const, contains_var, is_var, var_plus_const};
-use super::{integrate, IntegrateError};
+use super::{integrate, integrate_expr, IntegrateError};
 
 pub fn integrate_div(f: Expr, g: Expr, var: Symbol) -> Result<Expr, IntegrateError> {
     if !contains_var(&g, var) {
-        return Ok(integrate(f, var)? / g);
+        return Ok(integrate_expr(f, var)? / g);
     }
 
     // 1/(x-a)/(x-b) encoded as Div(Div(1, x-a), x-b)

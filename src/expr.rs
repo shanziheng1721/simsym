@@ -34,6 +34,14 @@ impl Expr {
         &self.0
     }
 
+    /// Unwrap the AST node, moving children when this `Expr` is the sole `Rc` owner.
+    pub(crate) fn into_kind(self) -> ExprKind {
+        match Rc::try_unwrap(self.0) {
+            Ok(k) => k,
+            Err(rc) => (*rc).clone(),
+        }
+    }
+
     pub fn const_(c: Rational) -> Self {
         Self::from_kind(ExprKind::Const(c))
     }
@@ -85,14 +93,14 @@ impl Expr {
         self,
         env: &[(Symbol, Rational)],
     ) -> Result<Rational, crate::eval::EvalError> {
-        crate::eval::eval(self, env)
+        crate::eval::eval(&self, env)
     }
 
     pub fn eval_f64(
         self,
         env: &[(Symbol, f64)],
     ) -> Result<f64, crate::eval::EvalError> {
-        crate::eval::eval_f64(self, env)
+        crate::eval::eval_f64(&self, env)
     }
 
     /// Definite integral via antiderivative or numeric fallback (requires `integrate`).

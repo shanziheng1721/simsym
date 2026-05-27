@@ -43,31 +43,33 @@ fn diff_kind(kind: &ExprKind, var: Symbol) -> Expr {
         ExprKind::Mul(f, g) => {
             let fp = diff_expr(f, var);
             let gp = diff_expr(g, var);
-            fp.clone() * g.clone() + f.clone() * gp
+            fp * g.clone() + f.clone() * gp
         }
         ExprKind::Div(f, g) => {
             let fp = diff_expr(f, var);
             let gp = diff_expr(g, var);
-            (fp * g.clone() - f.clone() * gp) / pow(g.clone(), const_(Rational::from(2)))
+            let g_c = g.clone();
+            (fp * g_c.clone() - f.clone() * gp) / pow(g_c, const_(Rational::from(2)))
         }
-        ExprKind::Pow(base, exp) => diff_pow(base.clone(), exp.clone(), var),
+        ExprKind::Pow(base, exp) => diff_pow(base, exp, var),
         ExprKind::Sin(e) => diff_expr(e, var) * crate::expr::cos(e.clone()),
         ExprKind::Cos(e) => -diff_expr(e, var) * crate::expr::sin(e.clone()),
         ExprKind::Tan(e) => {
-            let u = e.clone();
-            diff_expr(&u, var) / pow(crate::expr::cos(u), const_(Rational::from(2)))
+            diff_expr(e, var) / pow(crate::expr::cos(e.clone()), const_(Rational::from(2)))
         }
         ExprKind::Exp(e) => diff_expr(e, var) * crate::expr::exp(e.clone()),
         ExprKind::Ln(e) => diff_expr(e, var) / e.clone(),
-        ExprKind::Atan(e) => diff_expr(e, var) / (const_(Rational::one()) + pow(e.clone(), const_(Rational::from(2)))),
+        ExprKind::Atan(e) => {
+            diff_expr(e, var) / (const_(Rational::one()) + pow(e.clone(), const_(Rational::from(2))))
+        }
     }
 }
 
-fn diff_pow(base: Expr, exp: Expr, var: Symbol) -> Expr {
+fn diff_pow(base: &Expr, exp: &Expr, var: Symbol) -> Expr {
     if let ExprKind::Var(s) = base.kind() {
         if s.name() == "e" {
-            if is_var_expr(&exp, var) {
-                return diff_expr(&crate::expr::exp(exp), var);
+            if is_var_expr(exp, var) {
+                return diff_expr(&crate::expr::exp(exp.clone()), var);
             }
         }
     }
@@ -77,19 +79,18 @@ fn diff_pow(base: Expr, exp: Expr, var: Symbol) -> Expr {
                 return const_(Rational::zero());
             }
             if k == 1 {
-                return diff_expr(&base, var);
+                return diff_expr(base, var);
             }
             return const_(Rational::from(k))
                 * pow(base.clone(), const_(Rational::from(k - 1)))
-                * diff_expr(&base, var);
+                * diff_expr(base, var);
         }
     }
-    let u = base;
-    let v = exp;
-    let up = diff_expr(&u, var);
-    let vp = diff_expr(&v, var);
-    let term1 = v.clone() * pow(u.clone(), v.clone() - const_(Rational::one())) * up;
-    let term2 = pow(u.clone(), v) * crate::expr::ln(u) * vp;
+    let up = diff_expr(base, var);
+    let vp = diff_expr(exp, var);
+    let term1 = exp.clone() * pow(base.clone(), exp.clone() - const_(Rational::one())) * up;
+    let u_ln = base.clone();
+    let term2 = pow(base.clone(), exp.clone()) * crate::expr::ln(u_ln) * vp;
     term1 + term2
 }
 

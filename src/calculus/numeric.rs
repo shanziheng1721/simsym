@@ -53,8 +53,8 @@ pub fn integrate_definite(
 ) -> Result<Rational, DefiniteIntegralError> {
     match integrate(expr.clone(), var) {
         Ok(antiderivative) => {
-            let fa = substitute_and_eval(antiderivative.clone(), var, a, env)?;
-            let fb = substitute_and_eval(antiderivative, var, b, env)?;
+            let fa = substitute_and_eval(&antiderivative, var, a, env)?;
+            let fb = substitute_and_eval(&antiderivative, var, b, env)?;
             Ok(fb - fa)
         }
         Err(IntegrateError::NoRule) => {
@@ -86,7 +86,7 @@ fn float_to_rational_approx(v: f64) -> Option<Rational> {
 
 #[cfg(feature = "integrate")]
 fn substitute_and_eval(
-    expr: Expr,
+    expr: &Expr,
     var: Symbol,
     at: Rational,
     env: &[(Symbol, Rational)],
@@ -97,7 +97,7 @@ fn substitute_and_eval(
     } else {
         full.push((var, at));
     }
-    expr.eval(&full)
+    crate::eval::eval(expr, &full)
 }
 
 fn adaptive_simpson(
@@ -142,5 +142,5 @@ fn eval_at(expr: &Expr, var: Symbol, t: f64, env: &[(Symbol, f64)]) -> Result<f6
     } else {
         full.push((var, t));
     }
-    expr.clone().eval_f64(&full)
+    crate::eval::eval_f64(expr, &full)
 }

@@ -49,31 +49,32 @@ pub fn integrate(expr: Expr, var: Symbol) -> Result<Expr, IntegrateError> {
     if let Some(result) = substitution::try_u_substitution(&expr, var) {
         return Ok(finalize_integral(result));
     }
-    let result = integrate_kind(expr.kind(), var)?;
+    let result = integrate_expr(expr, var)?;
     Ok(finalize_integral(result))
 }
 
-fn integrate_kind(kind: &ExprKind, var: Symbol) -> Result<Expr, IntegrateError> {
-    match kind {
-        ExprKind::Const(c) => Ok(crate::expr::const_(*c) * Expr::var(var)),
+/// Integrate without re-running top-level substitution heuristics on every subtree.
+pub(crate) fn integrate_expr(expr: Expr, var: Symbol) -> Result<Expr, IntegrateError> {
+    match expr.into_kind() {
+        ExprKind::Const(c) => Ok(crate::expr::const_(c) * Expr::var(var)),
         ExprKind::Var(s) => {
-            if *s == var {
+            if s == var {
                 Ok(power::integrate_var_power(1, var)?)
             } else {
-                Ok(Expr::var(*s) * Expr::var(var))
+                Ok(Expr::var(s) * Expr::var(var))
             }
         }
-        ExprKind::Add(a, b) => Ok(integrate(a.clone(), var)? + integrate(b.clone(), var)?),
-        ExprKind::Sub(a, b) => Ok(integrate(a.clone(), var)? - integrate(b.clone(), var)?),
-        ExprKind::Neg(e) => Ok(-integrate(e.clone(), var)?),
-        ExprKind::Mul(f, g) => product::integrate_product(f.clone(), g.clone(), var),
-        ExprKind::Div(f, g) => rational::integrate_div(f.clone(), g.clone(), var),
-        ExprKind::Pow(base, exp) => power::integrate_pow(base.clone(), exp.clone(), var),
-        ExprKind::Sin(e) => elementary::integrate_sin(e, var),
-        ExprKind::Cos(e) => elementary::integrate_cos(e, var),
-        ExprKind::Exp(e) => elementary::integrate_exp(e, var),
-        ExprKind::Tan(e) => elementary::integrate_tan(e, var),
-        ExprKind::Ln(e) => elementary::integrate_ln(e, var),
-        ExprKind::Atan(e) => elementary::integrate_atan(e, var),
+        ExprKind::Add(a, b) => Ok(integrate_expr(a, var)? + integrate_expr(b, var)?),
+        ExprKind::Sub(a, b) => Ok(integrate_expr(a, var)? - integrate_expr(b, var)?),
+        ExprKind::Neg(e) => Ok(-integrate_expr(e, var)?),
+        ExprKind::Mul(f, g) => product::integrate_product(f, g, var),
+        ExprKind::Div(f, g) => rational::integrate_div(f, g, var),
+        ExprKind::Pow(base, exp) => power::integrate_pow(base, exp, var),
+        ExprKind::Sin(e) => elementary::integrate_sin(&e, var),
+        ExprKind::Cos(e) => elementary::integrate_cos(&e, var),
+        ExprKind::Exp(e) => elementary::integrate_exp(&e, var),
+        ExprKind::Tan(e) => elementary::integrate_tan(&e, var),
+        ExprKind::Ln(e) => elementary::integrate_ln(&e, var),
+        ExprKind::Atan(e) => elementary::integrate_atan(&e, var),
     }
 }
