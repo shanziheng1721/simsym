@@ -1,6 +1,6 @@
 [workspace]
 members = [".", "simsym-macros"]
-resolver = "2"
+resolver = "3"
 
 [package]
 name = "simsym"
@@ -10,13 +10,13 @@ description = "A simple symbolic computation library"
 license = "BSD-3-Clause"
 
 [dependencies]
-num-integer = "0.1"
-num-rational = "0.4"
-num-traits = "0.2"
+num-integer = "0.1.46"
+num-rational = "0.4.2"
+num-traits = "0.2.19"
 simsym-macros = { path = "simsym-macros" }
-thiserror = "2"
+thiserror = "2.0.18"
 
-serde = { version = "1", optional = true, features = ["derive"] }
+serde = { version = "1.0.228", optional = true, features = ["derive"] }
 
 [features]
 default = ["simplify", "diff", "integrate"]
@@ -27,11 +27,11 @@ serde = ["dep:serde", "num-rational/serde"]
 bigint = ["num-rational/num-bigint", "dep:num-bigint"]
 
 [dependencies.num-bigint]
-version = "0.4"
+version = "0.4.6"
 optional = true
 
 [dev-dependencies]
-proptest = "1"
+proptest = "1.11.0"
 
 [lib]
 name = "simsym"
