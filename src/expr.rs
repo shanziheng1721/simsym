@@ -17,7 +17,27 @@ pub enum ExprKind {
     Sin(Expr),
     Cos(Expr),
     Tan(Expr),
+    Cot(Expr),
+    Sec(Expr),
+    Csc(Expr),
+    Asin(Expr),
+    Acos(Expr),
     Atan(Expr),
+    Acot(Expr),
+    Asec(Expr),
+    Acsc(Expr),
+    Sinh(Expr),
+    Cosh(Expr),
+    Tanh(Expr),
+    Coth(Expr),
+    Sech(Expr),
+    Csch(Expr),
+    Asinh(Expr),
+    Acosh(Expr),
+    Atanh(Expr),
+    Acoth(Expr),
+    Asech(Expr),
+    Acsch(Expr),
     Exp(Expr),
     Ln(Expr),
 }
@@ -164,6 +184,86 @@ pub fn tan(e: Expr) -> Expr {
 
 pub fn atan(e: Expr) -> Expr {
     Expr::from_kind(ExprKind::Atan(e))
+}
+
+pub fn cot(e: Expr) -> Expr {
+    Expr::from_kind(ExprKind::Cot(e))
+}
+
+pub fn sec(e: Expr) -> Expr {
+    Expr::from_kind(ExprKind::Sec(e))
+}
+
+pub fn csc(e: Expr) -> Expr {
+    Expr::from_kind(ExprKind::Csc(e))
+}
+
+pub fn asin(e: Expr) -> Expr {
+    Expr::from_kind(ExprKind::Asin(e))
+}
+
+pub fn acos(e: Expr) -> Expr {
+    Expr::from_kind(ExprKind::Acos(e))
+}
+
+pub fn acot(e: Expr) -> Expr {
+    Expr::from_kind(ExprKind::Acot(e))
+}
+
+pub fn asec(e: Expr) -> Expr {
+    Expr::from_kind(ExprKind::Asec(e))
+}
+
+pub fn acsc(e: Expr) -> Expr {
+    Expr::from_kind(ExprKind::Acsc(e))
+}
+
+pub fn sinh(e: Expr) -> Expr {
+    Expr::from_kind(ExprKind::Sinh(e))
+}
+
+pub fn cosh(e: Expr) -> Expr {
+    Expr::from_kind(ExprKind::Cosh(e))
+}
+
+pub fn tanh(e: Expr) -> Expr {
+    Expr::from_kind(ExprKind::Tanh(e))
+}
+
+pub fn coth(e: Expr) -> Expr {
+    Expr::from_kind(ExprKind::Coth(e))
+}
+
+pub fn sech(e: Expr) -> Expr {
+    Expr::from_kind(ExprKind::Sech(e))
+}
+
+pub fn csch(e: Expr) -> Expr {
+    Expr::from_kind(ExprKind::Csch(e))
+}
+
+pub fn asinh(e: Expr) -> Expr {
+    Expr::from_kind(ExprKind::Asinh(e))
+}
+
+pub fn acosh(e: Expr) -> Expr {
+    Expr::from_kind(ExprKind::Acosh(e))
+}
+
+pub fn atanh(e: Expr) -> Expr {
+    Expr::from_kind(ExprKind::Atanh(e))
+}
+
+pub fn acoth(e: Expr) -> Expr {
+    Expr::from_kind(ExprKind::Acoth(e))
+}
+
+pub fn asech(e: Expr) -> Expr {
+    Expr::from_kind(ExprKind::Asech(e))
+}
+
+pub fn acsch(e: Expr) -> Expr {
+    Expr::from_kind(ExprKind::Acsch(e))
 }
 
 pub fn exp(e: Expr) -> Expr {

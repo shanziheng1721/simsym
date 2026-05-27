@@ -38,7 +38,27 @@ pub fn eval(expr: &Expr, env: &[(Symbol, Rational)]) -> Result<Rational, EvalErr
         ExprKind::Sin(_)
         | ExprKind::Cos(_)
         | ExprKind::Tan(_)
+        | ExprKind::Cot(_)
+        | ExprKind::Sec(_)
+        | ExprKind::Csc(_)
+        | ExprKind::Asin(_)
+        | ExprKind::Acos(_)
         | ExprKind::Atan(_)
+        | ExprKind::Acot(_)
+        | ExprKind::Asec(_)
+        | ExprKind::Acsc(_)
+        | ExprKind::Sinh(_)
+        | ExprKind::Cosh(_)
+        | ExprKind::Tanh(_)
+        | ExprKind::Coth(_)
+        | ExprKind::Sech(_)
+        | ExprKind::Csch(_)
+        | ExprKind::Asinh(_)
+        | ExprKind::Acosh(_)
+        | ExprKind::Atanh(_)
+        | ExprKind::Acoth(_)
+        | ExprKind::Asech(_)
+        | ExprKind::Acsch(_)
         | ExprKind::Exp(_)
         | ExprKind::Ln(_) => Err(EvalError::Undefined(
             "transcendental functions require eval_f64",
@@ -79,7 +99,27 @@ pub fn eval_f64(expr: &Expr, env: &[(Symbol, f64)]) -> Result<f64, EvalError> {
         ExprKind::Sin(e) => Ok(eval_f64(e, env)?.sin()),
         ExprKind::Cos(e) => Ok(eval_f64(e, env)?.cos()),
         ExprKind::Tan(e) => Ok(eval_f64(e, env)?.tan()),
+        ExprKind::Cot(e) => Ok(1.0 / eval_f64(e, env)?.tan()),
+        ExprKind::Sec(e) => Ok(1.0 / eval_f64(e, env)?.cos()),
+        ExprKind::Csc(e) => Ok(1.0 / eval_f64(e, env)?.sin()),
+        ExprKind::Asin(e) => Ok(eval_f64(e, env)?.asin()),
+        ExprKind::Acos(e) => Ok(eval_f64(e, env)?.acos()),
         ExprKind::Atan(e) => Ok(eval_f64(e, env)?.atan()),
+        ExprKind::Acot(e) => Ok(std::f64::consts::FRAC_PI_2 - eval_f64(e, env)?.atan()),
+        ExprKind::Asec(e) => Ok((1.0 / eval_f64(e, env)?).acos()),
+        ExprKind::Acsc(e) => Ok((1.0 / eval_f64(e, env)?).asin()),
+        ExprKind::Sinh(e) => Ok(eval_f64(e, env)?.sinh()),
+        ExprKind::Cosh(e) => Ok(eval_f64(e, env)?.cosh()),
+        ExprKind::Tanh(e) => Ok(eval_f64(e, env)?.tanh()),
+        ExprKind::Coth(e) => Ok(1.0 / eval_f64(e, env)?.tanh()),
+        ExprKind::Sech(e) => Ok(1.0 / eval_f64(e, env)?.cosh()),
+        ExprKind::Csch(e) => Ok(1.0 / eval_f64(e, env)?.sinh()),
+        ExprKind::Asinh(e) => Ok(eval_f64(e, env)?.asinh()),
+        ExprKind::Acosh(e) => Ok(eval_f64(e, env)?.acosh()),
+        ExprKind::Atanh(e) => Ok(eval_f64(e, env)?.atanh()),
+        ExprKind::Acoth(e) => Ok(acoth_f64(eval_f64(e, env)?)),
+        ExprKind::Asech(e) => Ok(asech_f64(eval_f64(e, env)?)),
+        ExprKind::Acsch(e) => Ok(acsch_f64(eval_f64(e, env)?)),
         ExprKind::Exp(e) => Ok(eval_f64(e, env)?.exp()),
         ExprKind::Ln(e) => {
             let v = eval_f64(e, env)?;
@@ -90,4 +130,16 @@ pub fn eval_f64(expr: &Expr, env: &[(Symbol, f64)]) -> Result<f64, EvalError> {
             }
         }
     }
+}
+
+fn acoth_f64(x: f64) -> f64 {
+    0.5 * ((x + 1.0) / (x - 1.0)).ln()
+}
+
+fn asech_f64(x: f64) -> f64 {
+    (1.0 / x).acosh()
+}
+
+fn acsch_f64(x: f64) -> f64 {
+    (1.0 / x).asinh()
 }

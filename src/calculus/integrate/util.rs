@@ -18,9 +18,29 @@ pub fn contains_var(expr: &Expr, var: Symbol) -> bool {
         | ExprKind::Sin(e)
         | ExprKind::Cos(e)
         | ExprKind::Tan(e)
+        | ExprKind::Cot(e)
+        | ExprKind::Sec(e)
+        | ExprKind::Csc(e)
+        | ExprKind::Asin(e)
+        | ExprKind::Acos(e)
+        | ExprKind::Atan(e)
+        | ExprKind::Acot(e)
+        | ExprKind::Asec(e)
+        | ExprKind::Acsc(e)
+        | ExprKind::Sinh(e)
+        | ExprKind::Cosh(e)
+        | ExprKind::Tanh(e)
+        | ExprKind::Coth(e)
+        | ExprKind::Sech(e)
+        | ExprKind::Csch(e)
+        | ExprKind::Asinh(e)
+        | ExprKind::Acosh(e)
+        | ExprKind::Atanh(e)
+        | ExprKind::Acoth(e)
+        | ExprKind::Asech(e)
+        | ExprKind::Acsch(e)
         | ExprKind::Exp(e)
-        | ExprKind::Ln(e)
-        | ExprKind::Atan(e) => contains_var(e, var),
+        | ExprKind::Ln(e) => contains_var(e, var),
     }
 }
 

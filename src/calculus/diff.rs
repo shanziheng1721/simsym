@@ -1,3 +1,6 @@
+#[path = "trig_diff.rs"]
+mod trig_diff;
+
 use crate::expr::{const_, pow, Expr, ExprKind};
 use crate::rational::Rational;
 use crate::symbol::Symbol;
@@ -62,6 +65,8 @@ fn diff_kind(kind: &ExprKind, var: Symbol) -> Expr {
         ExprKind::Atan(e) => {
             diff_expr(e, var) / (const_(Rational::one()) + pow(e.clone(), const_(Rational::from(2))))
         }
+        k => trig_diff::diff_trig_kind(k, var)
+            .expect("extended trigonometric kinds are handled in trig_diff"),
     }
 }
 

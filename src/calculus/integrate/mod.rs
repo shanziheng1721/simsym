@@ -13,6 +13,7 @@
 //! or RUBI-scale rule databases.
 
 mod elementary;
+mod elementary_trig;
 mod power;
 mod product;
 mod rational;
@@ -76,5 +77,25 @@ pub(crate) fn integrate_expr(expr: Expr, var: Symbol) -> Result<Expr, IntegrateE
         ExprKind::Tan(e) => elementary::integrate_tan(&e, var),
         ExprKind::Ln(e) => elementary::integrate_ln(&e, var),
         ExprKind::Atan(e) => elementary::integrate_atan(&e, var),
+        ExprKind::Cot(e) => elementary_trig::integrate_cot(&e, var),
+        ExprKind::Sec(e) => elementary_trig::integrate_sec(&e, var),
+        ExprKind::Csc(e) => elementary_trig::integrate_csc(&e, var),
+        ExprKind::Asin(e) => elementary_trig::integrate_asin(&e, var),
+        ExprKind::Acos(e) => elementary_trig::integrate_acos(&e, var),
+        ExprKind::Acot(e) => elementary_trig::integrate_acot(&e, var),
+        ExprKind::Asec(e) => elementary_trig::integrate_asec(&e, var),
+        ExprKind::Acsc(e) => elementary_trig::integrate_acsc(&e, var),
+        ExprKind::Sinh(e) => elementary_trig::integrate_sinh(&e, var),
+        ExprKind::Cosh(e) => elementary_trig::integrate_cosh(&e, var),
+        ExprKind::Tanh(e) => elementary_trig::integrate_tanh(&e, var),
+        ExprKind::Coth(e) => elementary_trig::integrate_coth(&e, var),
+        ExprKind::Sech(e) => elementary_trig::integrate_sech(&e, var),
+        ExprKind::Csch(e) => elementary_trig::integrate_csch(&e, var),
+        ExprKind::Asinh(e) => elementary_trig::integrate_asinh(&e, var),
+        ExprKind::Acosh(e) => elementary_trig::integrate_acosh(&e, var),
+        ExprKind::Atanh(e) => elementary_trig::integrate_atanh(&e, var),
+        ExprKind::Acoth(e) => elementary_trig::integrate_acoth(&e, var),
+        ExprKind::Asech(e) => elementary_trig::integrate_asech(&e, var),
+        ExprKind::Acsch(e) => elementary_trig::integrate_acsch(&e, var),
     }
 }

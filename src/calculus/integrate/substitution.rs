@@ -80,6 +80,36 @@ fn try_substitution_product(f: &Expr, gp: &Expr, var: Symbol) -> Option<Expr> {
                     )
             },
         ),
+        ExprKind::Cot(inner) => {
+            chain_elementary(inner, &gp, var, |u| crate::expr::ln(crate::expr::sin(u.clone())))
+        }
+        ExprKind::Sec(inner) => chain_elementary(inner, &gp, var, |u| {
+            crate::expr::ln(crate::expr::add(
+                crate::expr::sec(u.clone()),
+                crate::expr::tan(u.clone()),
+            ))
+        }),
+        ExprKind::Csc(inner) => chain_elementary(inner, &gp, var, |u| {
+            -crate::expr::ln(crate::expr::add(
+                crate::expr::csc(u.clone()),
+                crate::expr::cot(u.clone()),
+            ))
+        }),
+        ExprKind::Sinh(inner) => {
+            chain_elementary(inner, &gp, var, |u| crate::expr::cosh(u.clone()))
+        }
+        ExprKind::Cosh(inner) => {
+            chain_elementary(inner, &gp, var, |u| crate::expr::sinh(u.clone()))
+        }
+        ExprKind::Tanh(inner) => chain_elementary(inner, &gp, var, |u| {
+            crate::expr::ln(crate::expr::cosh(u.clone()))
+        }),
+        ExprKind::Coth(inner) => {
+            chain_elementary(inner, &gp, var, |u| crate::expr::ln(crate::expr::sinh(u.clone())))
+        }
+        ExprKind::Sech(inner) => chain_elementary(inner, &gp, var, |u| {
+            crate::expr::atan(crate::expr::sinh(u.clone()))
+        }),
         _ => None,
     }
 }

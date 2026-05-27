@@ -57,29 +57,24 @@ pub use calculus::{diff, diff_without_simplify, gradient, hessian};
 
 pub use simsym_macros::expr;
 
-pub fn sin(e: impl Into<Expr>) -> Expr {
-    expr::sin(e.into())
+macro_rules! unary_fn {
+    ($($name:ident),* $(,)?) => {
+        $(pub fn $name(e: impl Into<Expr>) -> Expr {
+            expr::$name(e.into())
+        })*
+    };
 }
-pub fn cos(e: impl Into<Expr>) -> Expr {
-    expr::cos(e.into())
-}
-pub fn tan(e: impl Into<Expr>) -> Expr {
-    expr::tan(e.into())
-}
-pub fn exp(e: impl Into<Expr>) -> Expr {
-    expr::exp(e.into())
-}
-pub fn ln(e: impl Into<Expr>) -> Expr {
-    expr::ln(e.into())
-}
-pub fn atan(e: impl Into<Expr>) -> Expr {
-    expr::atan(e.into())
-}
+
+unary_fn!(
+    sin, cos, tan, cot, sec, csc, asin, acos, atan, acot, asec, acsc, sinh, cosh, tanh, coth,
+    sech, csch, asinh, acosh, atanh, acoth, asech, acsch, exp, ln,
+);
 
 pub mod prelude {
     pub use crate::{
-        atan, cos, exp, expr, ln, rational, rational_from_i32, sin, symbol, tan, EvalError, Expr,
-        Rational, Symbol,
+        acos, acosh, acot, acoth, acsc, acsch, asec, asech, asin, asinh, atan, atanh, cos, cosh,
+        cot, coth, csc, csch, exp, expr, ln, rational, rational_from_i32, sec, sech, sin, sinh,
+        symbol, tan, tanh, EvalError, Expr, Rational, Symbol,
     };
     #[cfg(any(feature = "diff", feature = "integrate"))]
     pub use crate::{DefiniteIntegralError, NumericOptions, integrate_numeric};
@@ -99,6 +94,16 @@ mod tests {
         let f = x.pow(2) + rational(2, 1) * x;
         let v = f.eval(&[(x, rational(1, 2))]).unwrap();
         assert_eq!(v, rational(5, 4));
+    }
+
+    #[test]
+    fn extended_trig_eval_f64() {
+        let x = symbol("x");
+        let env = [(x, 0.5)];
+        assert!((cot(x).eval_f64(&env).unwrap() - 1.0 / 0.5f64.tan()).abs() < 1e-10);
+        assert!((sinh(x).eval_f64(&env).unwrap() - 0.5f64.sinh()).abs() < 1e-10);
+        assert_eq!(cot(x).to_string(), "cot(x)");
+        assert_eq!(sinh(x).to_string(), "sinh(x)");
     }
 
     #[test]

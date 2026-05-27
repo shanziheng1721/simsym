@@ -31,7 +31,7 @@ let num = integrate_numeric(&sin(x), x, 0.0, std::f64::consts::PI, &[], NumericO
 
 ## Features
 
-- Expression AST with `+ - * / ^` and `sin`, `cos`, `tan`, `exp`, `ln`
+- Expression AST with `+ - * / ^`, full circular & hyperbolic trig (`sin`…`acsch`), plus `exp`, `ln`
 - Exact `Rational` constants (`i64` ratios)
 - Simplification (algebraic folding, some like-term merging)
 - Partial derivatives and gradients / Hessians
