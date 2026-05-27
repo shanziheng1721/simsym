@@ -6,14 +6,17 @@ resolver = "3"
 name = "simsym"
 version = "0.1.0"
 edition = "2024"
-description = "A simple symbolic computation library"
+description = "A simple symbolic computation library."
 license = "BSD-3-Clause"
+repository = "https://github.com/shanziheng1721/simsym"
+readme = "README.md"
+keywords = ["symbolic", "computation"]
 
 [dependencies]
 num-integer = "0.1.46"
 num-rational = "0.4.2"
 num-traits = "0.2.19"
-simsym-macros = { path = "simsym-macros" }
+simsym-macros = "0.1.0"
 thiserror = "2.0.18"
 
 serde = { version = "1.0.228", optional = true, features = ["derive"] }

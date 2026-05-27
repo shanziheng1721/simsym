@@ -2,11 +2,14 @@
 name = "simsym-macros"
 version = "0.1.0"
 edition = "2024"
+description = "Some macros used for simsym, a simple symbolic computation library."
+license = "BSD-3-Clause"
+keywords = ["symbolic", "computation"]
 
 [lib]
 proc-macro = true
 
 [dependencies]
-proc-macro2 = "1"
-quote = "1"
-syn = { version = "2", features = ["full"] }
+proc-macro2 = "1.0.106"
+quote = "1.0.45"
+syn = { version = "2.0.117", features = ["full"] }

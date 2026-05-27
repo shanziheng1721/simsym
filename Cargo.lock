@@ -423,13 +423,24 @@ dependencies = [
  "num-traits",
  "proptest",
  "serde",
- "simsym-macros",
+ "simsym-macros 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
 ]
 
 [[package]]
 name = "simsym-macros"
 version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "simsym-macros"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d253fa6bfe15d47a16873134b4c8263c42fd2a52811ec6e1a21ee89c30d7547a"
 dependencies = [
  "proc-macro2",
  "quote",
