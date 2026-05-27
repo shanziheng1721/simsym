@@ -1,5 +1,8 @@
 use num_rational::Ratio;
 use num_traits::{One, Signed, Zero};
+
+#[cfg(feature = "bigint")]
+use num_traits::ToPrimitive;
 use std::fmt;
 use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
 
@@ -18,6 +21,10 @@ impl Rational {
 
     pub fn to_f64(self) -> f64 {
         *self.0.numer() as f64 / *self.0.denom() as f64
+    }
+
+    pub fn to_f32(self) -> f32 {
+        self.to_f64() as f32
     }
 
     pub fn is_zero(self) -> bool {
@@ -55,6 +62,14 @@ impl Rational {
     pub fn denom(self) -> i64 {
         *self.0.denom()
     }
+
+    /// Convert a [`BigRational`](crate::rational_big::BigRational) when numerator and denominator fit in `i64`.
+    #[cfg(feature = "bigint")]
+    pub fn try_from_big(b: &crate::rational_big::BigRational) -> Option<Self> {
+        let n = b.numer().to_i64()?;
+        let d = b.denom().to_i64()?;
+        Some(Self::new(n, d))
+    }
 }
 
 /// Build a rational from numerator and denominator.
@@ -62,8 +77,9 @@ pub fn rational(num: i64, den: i64) -> Rational {
     Rational::new(num, den)
 }
 
+/// Shorthand for [`Rational::from`] on `i32`.
 pub fn rational_from_i32(n: i32) -> Rational {
-    Rational::from_integer(i64::from(n))
+    Rational::from(n)
 }
 
 pub fn rat_pow_int(base: Rational, exp: i64) -> Result<Rational, RationalPowError> {
@@ -113,18 +129,6 @@ impl fmt::Display for Rational {
         } else {
             write!(f, "{}/{}", self.0.numer(), self.0.denom())
         }
-    }
-}
-
-impl From<i32> for Rational {
-    fn from(n: i32) -> Self {
-        rational_from_i32(n)
-    }
-}
-
-impl From<i64> for Rational {
-    fn from(n: i64) -> Self {
-        Rational::from_integer(n)
     }
 }
 

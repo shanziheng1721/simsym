@@ -54,7 +54,7 @@ fn fmt_polynomial_term(e: &Expr, f: &mut fmt::Formatter<'_>, force_add_sign: boo
                 if c.is_one() {
                     return fmt_expr_inner(r, f, 10);
                 }
-                if *c == -Rational::one() {
+                if c.try_as_rational() == Some(-Rational::one()) {
                     write!(f, "-")?;
                     return fmt_expr_inner(r, f, 10);
                 }

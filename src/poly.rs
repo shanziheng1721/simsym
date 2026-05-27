@@ -144,14 +144,16 @@ fn term_for_degree(var: Symbol, degree: i64, coeff: Rational) -> Option<Expr> {
 
 fn as_const(e: &Expr) -> Option<Rational> {
     match e.kind() {
-        ExprKind::Const(c) => Some(*c),
+        ExprKind::Const(c) => c.try_as_rational(),
         _ => None,
     }
 }
 
 fn coeff_monomial(e: &Expr) -> Option<(Rational, Expr)> {
     match e.kind() {
-        ExprKind::Const(c) => Some((*c, const_(Rational::one()))),
+        ExprKind::Const(c) => c
+            .try_as_rational()
+            .map(|r| (r, const_(Rational::one()))),
         ExprKind::Var(_) => Some((Rational::one(), e.clone())),
         ExprKind::Mul(l, r) => {
             if let Some(c) = as_const(l) {

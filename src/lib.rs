@@ -20,9 +20,13 @@
 //! assert_eq!(val, rational(5, 4));
 //! ```
 
+pub mod constant;
 pub mod display;
 pub mod eval;
 pub mod expr;
+mod num_convert;
+#[cfg(feature = "bigint")]
+mod num_convert_big;
 mod ops_ext;
 pub mod poly;
 pub mod rational;
@@ -43,7 +47,13 @@ pub mod rational_big;
 
 pub use eval::EvalError;
 pub use expr::Expr;
+pub use constant::Constant;
+pub use num_convert::RationalConvertError;
 pub use rational::{rational, rational_from_i32, Rational};
+#[cfg(feature = "bigint")]
+pub use rational_big::{big_rational, BigInt, BigRational};
+#[cfg(feature = "bigint")]
+pub use constant::big_const;
 pub use symbol::{symbol, Symbol};
 
 #[cfg(any(feature = "diff", feature = "integrate"))]
@@ -94,6 +104,39 @@ mod tests {
         let f = x.pow(2) + rational(2, 1) * x;
         let v = f.eval(&[(x, rational(1, 2))]).unwrap();
         assert_eq!(v, rational(5, 4));
+    }
+
+    #[test]
+    #[cfg(feature = "bigint")]
+    fn bigint_i128_constant() {
+        use crate::rational_big::BigRational;
+        let e: Expr = i128::MAX.into();
+        assert_eq!(e.to_string(), format!("{}", i128::MAX));
+        let br = BigRational::from(i128::MAX);
+        assert_eq!(br.numer().to_string(), i128::MAX.to_string());
+        assert!(Rational::try_from_big(&br).is_none());
+        assert!((e.eval_f64(&[]).unwrap() - i128::MAX as f64).abs() < 1.0);
+    }
+
+    #[test]
+    fn integer_and_float_conversions() {
+        assert_eq!(Rational::try_from(42u8).unwrap(), rational(42, 1));
+        assert_eq!(Rational::try_from(-3i8).unwrap(), rational(-3, 1));
+        assert!(Rational::try_from(i128::MAX).is_err());
+        let r = Rational::try_from(0.25f32).unwrap();
+        assert!((r.to_f32() - 0.25f32).abs() < 1e-6);
+        let x = symbol("x");
+        let f = 2u16 * x.to_expr() + Expr::from(1i8);
+        assert_eq!(f.eval(&[(x, rational(3, 1))]).unwrap(), rational(7, 1));
+    }
+
+    #[test]
+    fn eval_f32_works() {
+        let x = symbol("x");
+        let f = sin(x) + cos(x);
+        let v64 = f.clone().eval_f64(&[(x, 1.0)]).unwrap();
+        let v32 = f.eval_f32(&[(x, 1.0f32)]).unwrap();
+        assert!((v64 - f64::from(v32)).abs() < 1e-5);
     }
 
     #[test]

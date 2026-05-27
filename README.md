@@ -21,6 +21,7 @@ let grad = f.gradient(&[x, y]);
 
 let exact = f.eval(&[(x, rational(1, 2)), (y, rational(1, 3))])?;
 let approx = f.eval_f64(&[(x, 0.5), (y, 1.0 / 3.0)])?;
+let approx32 = f.eval_f32(&[(x, 0.5f32)])?;
 
 let F = f.integrate(x)?; // symbolic when a rule applies
 let area = f.integrate_definite(x, rational(0, 1), rational(1, 1), &[])?;
@@ -32,7 +33,7 @@ let num = integrate_numeric(&sin(x), x, 0.0, std::f64::consts::PI, &[], NumericO
 ## Features
 
 - Expression AST with `+ - * / ^`, full circular & hyperbolic trig (`sin`…`acsch`), plus `exp`, `ln`
-- Exact `Rational` constants (`i64` ratios)
+- Exact `Rational` constants (`i64` ratios); `From`/`TryFrom` for all integer primitives and `f32`/`f64`
 - Simplification (algebraic folding, some like-term merging)
 - Partial derivatives and gradients / Hessians
 - Symbolic integration for polynomials and common elementary forms
@@ -43,7 +44,7 @@ let num = integrate_numeric(&sin(x), x, 0.0, std::f64::consts::PI, &[], NumericO
 
 Symbolic integration is **rule-based** (polynomials, affine trig/exp, `e^x×P`, parts, `sin^n`/`cos^n` reduction, partial fractions for low-degree `P/Q` including `atan` terms, `sin·cos` products, etc.) — not a full Risch algorithm. See [docs/INTEGRATION.md](docs/INTEGRATION.md) for the algorithm stack. When `integrate` returns `IntegrateError::NoRule`, use `integrate_numeric` or `integrate_definite` (which falls back automatically).
 
-Transcendental functions are not supported in exact `eval`; use `eval_f64`.
+Transcendental functions are not supported in exact `eval`; use `eval_f64` or `eval_f32`.
 
 ## Examples
 
@@ -72,4 +73,4 @@ cargo build --no-default-features
 Other optional features:
 
 - `serde` — serialize rationals as `(numer, denom)`
-- `bigint` — `BigRational` alias for wider coefficients (see `simsym::rational_big`)
+- `bigint` — [`BigRational`](src/rational_big.rs) / [`Constant::Wide`](src/constant.rs) for coefficients beyond `i64`; `From<i128>` etc. for [`Expr`](src/expr.rs)

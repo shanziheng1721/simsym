@@ -79,7 +79,8 @@ fn diff_pow(base: &Expr, exp: &Expr, var: Symbol) -> Expr {
         }
     }
     if let ExprKind::Const(n) = exp.kind() {
-        if let Some(k) = n.as_integer() {
+        if let Some(n) = n.try_as_rational() {
+            if let Some(k) = n.as_integer() {
             if k == 0 {
                 return const_(Rational::zero());
             }
@@ -89,6 +90,7 @@ fn diff_pow(base: &Expr, exp: &Expr, var: Symbol) -> Expr {
             return const_(Rational::from(k))
                 * pow(base.clone(), const_(Rational::from(k - 1)))
                 * diff_expr(base, var);
+            }
         }
     }
     let up = diff_expr(base, var);

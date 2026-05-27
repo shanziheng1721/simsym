@@ -81,7 +81,7 @@ fn simplify_once(expr: Expr) -> Expr {
 
 fn simplify_once_inner(expr: Expr) -> Expr {
     match expr.into_kind() {
-        ExprKind::Const(c) => const_(c),
+        ExprKind::Const(c) => crate::constant::constant(c.clone()),
         ExprKind::Var(s) => Expr::var(s),
         ExprKind::Add(a, b) => simplify_add(simplify_once_inner(a), simplify_once_inner(b)),
         ExprKind::Sub(a, b) => simplify_sub(simplify_once_inner(a), simplify_once_inner(b)),
@@ -390,7 +390,7 @@ fn is_euler_base(e: &Expr) -> bool {
 
 fn as_const(e: &Expr) -> Option<Rational> {
     match e.kind() {
-        ExprKind::Const(c) => Some(*c),
+        ExprKind::Const(c) => c.try_as_rational(),
         _ => None,
     }
 }
@@ -411,7 +411,9 @@ fn try_merge_polynomial_terms(a: &Expr, b: &Expr) -> Option<Expr> {
 
 fn coeff_monomial(e: &Expr) -> Option<(Rational, Expr)> {
     match e.kind() {
-        ExprKind::Const(c) => Some((*c, const_(Rational::one()))),
+        ExprKind::Const(c) => c
+            .try_as_rational()
+            .map(|r| (r, const_(Rational::one()))),
         ExprKind::Var(_) => Some((Rational::one(), e.clone())),
         ExprKind::Mul(l, r) => {
             if let Some(c) = as_const(l) {

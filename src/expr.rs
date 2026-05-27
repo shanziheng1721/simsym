@@ -1,3 +1,4 @@
+use crate::constant::Constant;
 use crate::rational::Rational;
 use crate::symbol::Symbol;
 use std::fmt;
@@ -6,7 +7,7 @@ use std::rc::Rc;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum ExprKind {
-    Const(Rational),
+    Const(Constant),
     Var(Symbol),
     Add(Expr, Expr),
     Sub(Expr, Expr),
@@ -63,7 +64,7 @@ impl Expr {
     }
 
     pub fn const_(c: Rational) -> Self {
-        Self::from_kind(ExprKind::Const(c))
+        Self::from_kind(ExprKind::Const(Constant::from_rational(c)))
     }
 
     pub fn var(s: Symbol) -> Self {
@@ -123,6 +124,13 @@ impl Expr {
         crate::eval::eval_f64(&self, env)
     }
 
+    pub fn eval_f32(
+        self,
+        env: &[(Symbol, f32)],
+    ) -> Result<f32, crate::eval::EvalError> {
+        crate::eval::eval_f32(&self, env)
+    }
+
     /// Definite integral via antiderivative or numeric fallback (requires `integrate`).
     #[cfg(feature = "integrate")]
     pub fn integrate_definite(
@@ -139,7 +147,7 @@ impl Expr {
 // --- shared constructors (used by ops and macros) ---
 
 pub fn const_(c: Rational) -> Expr {
-    Expr::const_(c)
+    crate::constant::const_(c)
 }
 
 pub fn var(s: Symbol) -> Expr {
@@ -312,18 +320,6 @@ impl Neg for Expr {
 impl From<Symbol> for Expr {
     fn from(s: Symbol) -> Self {
         Expr::var(s)
-    }
-}
-
-impl From<i32> for Expr {
-    fn from(n: i32) -> Self {
-        const_(Rational::from(n))
-    }
-}
-
-impl From<i64> for Expr {
-    fn from(n: i64) -> Self {
-        const_(Rational::from(n))
     }
 }
 

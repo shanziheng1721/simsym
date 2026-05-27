@@ -5,6 +5,49 @@ use crate::rational::Rational;
 use crate::symbol::Symbol;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
+macro_rules! impl_int_expr_mul_add {
+    ($($ty:ty),* $(,)?) => {
+        $(
+            impl Mul<Expr> for $ty {
+                type Output = Expr;
+                fn mul(self, rhs: Expr) -> Expr {
+                    const_(Rational::try_from(self).expect("integer fits in rational"))
+                        * rhs
+                }
+            }
+            impl Add<Expr> for $ty {
+                type Output = Expr;
+                fn add(self, rhs: Expr) -> Expr {
+                    const_(Rational::try_from(self).expect("integer fits in rational"))
+                        + rhs
+                }
+            }
+            impl Mul<$ty> for Expr {
+                type Output = Expr;
+                fn mul(self, rhs: $ty) -> Expr {
+                    self * const_(Rational::try_from(rhs).expect("integer fits in rational"))
+                }
+            }
+            impl Add<$ty> for Expr {
+                type Output = Expr;
+                fn add(self, rhs: $ty) -> Expr {
+                    self + const_(Rational::try_from(rhs).expect("integer fits in rational"))
+                }
+            }
+            impl Mul<Symbol> for $ty {
+                type Output = Expr;
+                fn mul(self, rhs: Symbol) -> Expr {
+                    const_(Rational::try_from(self).expect("integer fits in rational")) * rhs
+                }
+            }
+        )*
+    };
+}
+
+impl_int_expr_mul_add!(
+    i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize,
+);
+
 impl Symbol {
     pub fn to_expr(self) -> Expr {
         Expr::from(self)

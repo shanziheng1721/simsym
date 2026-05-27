@@ -57,7 +57,10 @@ pub fn integrate(expr: Expr, var: Symbol) -> Result<Expr, IntegrateError> {
 /// Integrate without re-running top-level substitution heuristics on every subtree.
 pub(crate) fn integrate_expr(expr: Expr, var: Symbol) -> Result<Expr, IntegrateError> {
     match expr.into_kind() {
-        ExprKind::Const(c) => Ok(crate::expr::const_(c) * Expr::var(var)),
+        ExprKind::Const(c) => {
+            let base = crate::constant::constant(c.clone());
+            Ok(base * Expr::var(var))
+        }
         ExprKind::Var(s) => {
             if s == var {
                 Ok(power::integrate_var_power(1, var)?)

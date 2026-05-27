@@ -84,12 +84,12 @@ pub fn linear_factor(a: &Expr, b: &Expr) -> Option<Rational> {
         ExprKind::Mul(l, r) => {
             if let ExprKind::Const(c) = l.kind() {
                 if r.clone().simplify() == *b {
-                    return Some(*c);
+                    return c.try_as_rational();
                 }
             }
             if let ExprKind::Const(c) = r.kind() {
                 if l.clone().simplify() == *b {
-                    return Some(*c);
+                    return c.try_as_rational();
                 }
             }
         }
@@ -107,23 +107,27 @@ pub fn chain_rule_scale(gp: &Expr, inner: &Expr, var: Symbol) -> Option<Rational
 /// Inner expression `k * var + b` (or just `var` when k=1, b=0).
 pub fn affine_form(e: &Expr, var: Symbol) -> Option<(Rational, Rational)> {
     match e.kind() {
-        ExprKind::Const(c) => Some((Rational::zero(), *c)),
+        ExprKind::Const(c) => c.try_as_rational().map(|r| (Rational::zero(), r)),
         ExprKind::Var(s) if *s == var => Some((Rational::one(), Rational::zero())),
         ExprKind::Mul(l, r) => {
-            if let ExprKind::Const(k) = l.kind() {
-                if is_var(r, var) {
-                    return Some((*k, Rational::zero()));
-                }
-                if let Some((k2, b)) = affine_form(r, var) {
-                    return Some((*k * k2, *k * b));
+            if let ExprKind::Const(kc) = l.kind() {
+                if let Some(k) = kc.try_as_rational() {
+                    if is_var(r, var) {
+                        return Some((k, Rational::zero()));
+                    }
+                    if let Some((k2, b)) = affine_form(r, var) {
+                        return Some((k * k2, k * b));
+                    }
                 }
             }
-            if let ExprKind::Const(k) = r.kind() {
-                if is_var(l, var) {
-                    return Some((*k, Rational::zero()));
-                }
-                if let Some((k2, b)) = affine_form(l, var) {
-                    return Some((*k * k2, *k * b));
+            if let ExprKind::Const(kc) = r.kind() {
+                if let Some(k) = kc.try_as_rational() {
+                    if is_var(l, var) {
+                        return Some((k, Rational::zero()));
+                    }
+                    if let Some((k2, b)) = affine_form(l, var) {
+                        return Some((k * k2, k * b));
+                    }
                 }
             }
             None
@@ -163,12 +167,12 @@ pub fn var_plus_const(e: &Expr, var: Symbol) -> Option<Rational> {
         ExprKind::Add(l, r) => {
             if is_var(l, var) {
                 if let ExprKind::Const(c) = r.kind() {
-                    return Some(*c);
+                    return c.try_as_rational();
                 }
             }
             if is_var(r, var) {
                 if let ExprKind::Const(c) = l.kind() {
-                    return Some(*c);
+                    return c.try_as_rational();
                 }
             }
             None
@@ -176,7 +180,7 @@ pub fn var_plus_const(e: &Expr, var: Symbol) -> Option<Rational> {
         ExprKind::Sub(l, r) => {
             if is_var(l, var) {
                 if let ExprKind::Const(c) = r.kind() {
-                    return Some(-*c);
+                    return c.try_as_rational().map(|v| -v);
                 }
             }
             None
@@ -195,7 +199,7 @@ pub fn var_plus_const(e: &Expr, var: Symbol) -> Option<Rational> {
 
 pub fn as_const(e: &Expr) -> Option<Rational> {
     match e.kind() {
-        ExprKind::Const(c) => Some(*c),
+        ExprKind::Const(c) => c.try_as_rational(),
         _ => None,
     }
 }
@@ -217,8 +221,10 @@ fn collect_poly_rec(
 ) -> Result<(), IntegrateError> {
     match expr.kind() {
         ExprKind::Const(c) => {
-            if !coeff.is_zero() {
-                *out.entry(0).or_insert(Rational::zero()) += coeff * *c;
+            if let Some(val) = c.try_as_rational() {
+                if !coeff.is_zero() {
+                    *out.entry(0).or_insert(Rational::zero()) += coeff * val;
+                }
             }
             Ok(())
         }
@@ -238,21 +244,26 @@ fn collect_poly_rec(
         ExprKind::Neg(e) => collect_poly_rec(e, var, -coeff, out),
         ExprKind::Mul(l, r) => {
             if let ExprKind::Const(c) = l.kind() {
-                collect_poly_rec(r, var, coeff * *c, out)
+                if let Some(k) = c.try_as_rational() {
+                    return collect_poly_rec(r, var, coeff * k, out);
+                }
             } else if let ExprKind::Const(c) = r.kind() {
-                collect_poly_rec(l, var, coeff * *c, out)
-            } else {
-                Err(IntegrateError::NoRule)
+                if let Some(k) = c.try_as_rational() {
+                    return collect_poly_rec(l, var, coeff * k, out);
+                }
             }
+            Err(IntegrateError::NoRule)
         }
         ExprKind::Pow(base, exp) => {
             if let Some(offset) = var_plus_const(base, var) {
                 if offset.is_zero() {
                     if let ExprKind::Const(n) = exp.kind() {
-                        if let Some(k) = n.as_integer() {
-                            if k >= 0 {
-                                *out.entry(k).or_insert(Rational::zero()) += coeff;
-                                return Ok(());
+                        if let Some(n) = n.try_as_rational() {
+                            if let Some(k) = n.as_integer() {
+                                if k >= 0 {
+                                    *out.entry(k).or_insert(Rational::zero()) += coeff;
+                                    return Ok(());
+                                }
                             }
                         }
                     }
@@ -260,10 +271,12 @@ fn collect_poly_rec(
             }
             if matches!(base.kind(), ExprKind::Var(s) if *s == var) {
                 if let ExprKind::Const(n) = exp.kind() {
-                    if let Some(k) = n.as_integer() {
-                        if k >= 0 {
-                            *out.entry(k).or_insert(Rational::zero()) += coeff;
-                            return Ok(());
+                    if let Some(n) = n.try_as_rational() {
+                        if let Some(k) = n.as_integer() {
+                            if k >= 0 {
+                                *out.entry(k).or_insert(Rational::zero()) += coeff;
+                                return Ok(());
+                            }
                         }
                     }
                 }
